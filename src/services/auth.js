@@ -1,7 +1,9 @@
 
 import { api, initSession } from "./api";
 
-// Login menggunakan PHP + MySQL
+// =====================================
+// LOGIN MENGGUNAKAN PHP + MYSQL
+// =====================================
 export async function login(email, password) {
   try {
     await initSession();
@@ -10,23 +12,25 @@ export async function login(email, password) {
       method: "POST",
       body: JSON.stringify({
         email,
-        password
-      })
+        password,
+      }),
     });
 
     return {
       ok: true,
-      user: res.user
+      user: res.user,
     };
   } catch (error) {
     return {
       ok: false,
-      error: error.message || "Login gagal."
+      error: error.message || "Login gagal.",
     };
   }
 }
 
-// Registrasi customer
+// =====================================
+// REGISTRASI CUSTOMER
+// =====================================
 export async function register(nama, email, password, hp = "") {
   try {
     await initSession();
@@ -37,23 +41,25 @@ export async function register(nama, email, password, hp = "") {
         nama,
         email,
         password,
-        hp
-      })
+        hp,
+      }),
     });
 
     return {
       ok: true,
-      message: res.message || "Registrasi berhasil."
+      message: res.message || "Registrasi berhasil.",
     };
   } catch (error) {
     return {
       ok: false,
-      error: error.message || "Registrasi gagal."
+      error: error.message || "Registrasi gagal.",
     };
   }
 }
 
-// Mengambil sesi dari server
+// =====================================
+// MENGAMBIL SESI DARI SERVER
+// =====================================
 export async function getSession() {
   const res = await initSession();
   return res.user || null;
@@ -61,10 +67,23 @@ export async function getSession() {
 
 export const getCurrentUser = getSession;
 
-// Logout melalui server
+// =====================================
+// LOGOUT DENGAN TOKEN CSRF TERBARU
+// =====================================
 export async function logout() {
-  await api("auth/logout.php", {
-    method: "POST",
-    body: JSON.stringify({})
-  });
+  try {
+    // Ambil token CSRF terbaru dari PHP
+    await initSession();
+
+    // Kirim permintaan logout ke server
+    const res = await api("auth/logout.php", {
+      method: "POST",
+      body: JSON.stringify({}),
+    });
+
+    return res;
+  } catch (error) {
+    console.error("Logout gagal:", error);
+    throw error;
+  }
 }

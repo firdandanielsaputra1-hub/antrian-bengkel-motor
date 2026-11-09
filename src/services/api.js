@@ -2,12 +2,14 @@
 let csrfToken = "";
 
 export async function api(path, options = {}) {
+  const method = (options.method || "GET").toUpperCase();
+
   const response = await fetch(`/api/${path}`, {
     ...options,
     credentials: "same-origin",
     headers: {
       "Content-Type": "application/json",
-      ...(csrfToken
+      ...(method !== "GET" && csrfToken
         ? { "X-CSRF-Token": csrfToken }
         : {}),
       ...options.headers,
@@ -16,6 +18,7 @@ export async function api(path, options = {}) {
 
   const result = await response.json();
 
+  // Simpan token terbaru dari server
   if (result.csrf) {
     csrfToken = result.csrf;
   }
