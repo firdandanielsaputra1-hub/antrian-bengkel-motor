@@ -26,6 +26,7 @@ export default function Register({ go }) {
   });
 
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const set = (key) => (e) => {
     const value =
@@ -41,9 +42,13 @@ export default function Register({ go }) {
     setErr("");
   };
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
+    setErr("");
 
+    if (loading) return;
+
+    // Validasi data
     if (!f.nama.trim() || !f.email.trim() || !f.hp.trim()) {
       setErr("Lengkapi nama, email, dan nomor HP.");
       return;
@@ -64,21 +69,35 @@ export default function Register({ go }) {
       return;
     }
 
-    const res = register(
-      f.nama,
-      f.email,
-      f.pass,
-      f.hp
-    );
+    setLoading(true);
 
-    if (!res.ok) {
-      setErr(res.error);
-      return;
+    try {
+      // Mengirim data ke PHP dan MySQL
+      const res = await register(
+        f.nama.trim(),
+        f.email.trim(),
+        f.pass,
+        f.hp.trim()
+      );
+
+      if (!res.ok) {
+        setErr(res.error || "Registrasi gagal.");
+        return;
+      }
+
+      alert("Registrasi berhasil! Silakan login.");
+
+      // Kembali ke halaman login
+      go("login");
+
+    } catch (error) {
+      setErr(
+        error.message ||
+        "Terjadi kesalahan saat melakukan registrasi."
+      );
+    } finally {
+      setLoading(false);
     }
-
-    setErr("");
-    alert("Registrasi berhasil! Silakan login.");
-    go("login");
   };
 
   return (
@@ -178,11 +197,18 @@ export default function Register({ go }) {
 
         <button
           type="submit"
-          className="w-full h-14 rounded-2xl text-white font-bold flex items-center justify-center gap-2 hover:opacity-90"
+          disabled={loading}
+          className="w-full h-14 rounded-2xl text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
           style={{ background: ORANGE }}
         >
-          Daftar Sekarang
-          <ArrowRight size={20} />
+          {loading ? (
+            "Sedang Mendaftar..."
+          ) : (
+            <>
+              Daftar Sekarang
+              <ArrowRight size={20} />
+            </>
+          )}
         </button>
 
         <div

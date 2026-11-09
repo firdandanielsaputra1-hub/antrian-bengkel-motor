@@ -10,8 +10,9 @@ export default function Login({ go, onLogin }) {
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
   const [err, setErr] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const submit = (e) => {
+  const submit = async (e) => {
     e.preventDefault();
     setErr("");
 
@@ -20,14 +21,22 @@ export default function Login({ go, onLogin }) {
       return;
     }
 
-    const res = login(email, pass);
+    setLoading(true);
 
-    if (!res.ok) {
-      setErr(res.error);
-      return;
+    try {
+      const res = await login(email.trim(), pass);
+
+      if (!res.ok) {
+        setErr(res.error || "Login gagal.");
+        return;
+      }
+
+      onLogin(res.user);
+    } catch (error) {
+      setErr(error.message || "Tidak dapat terhubung ke server.");
+    } finally {
+      setLoading(false);
     }
-
-    onLogin(res.user);
   };
 
   return (
@@ -60,7 +69,6 @@ export default function Login({ go, onLogin }) {
 
         <Field
           label="Kata Sandi"
-          aside="Lupa kata sandi?"
           icon={Lock}
           type="password"
           placeholder="Masukkan kata sandi"
@@ -79,10 +87,17 @@ export default function Login({ go, onLogin }) {
 
         <button
           type="submit"
-          className="w-full h-14 rounded-2xl text-white font-bold flex items-center justify-center gap-2 hover:opacity-90"
+          disabled={loading}
+          className="w-full h-14 rounded-2xl text-white font-bold flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50"
           style={{ background: ORANGE }}
         >
-          Masuk <ArrowRight size={20} />
+          {loading ? (
+            "Sedang masuk..."
+          ) : (
+            <>
+              Masuk <ArrowRight size={20} />
+            </>
+          )}
         </button>
       </form>
     </AuthShell>
