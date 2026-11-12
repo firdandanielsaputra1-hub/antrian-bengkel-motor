@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 
 import Register from "./pages/Register";
@@ -6,6 +5,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import CustomerHome from "./pages/CustomerHome";
 import OwnerDashboard from "./pages/OwnerDashboard";
+import MekanikDashboard from "./pages/MekanikDashboard";
 
 import { getSession, logout } from "./services/auth";
 
@@ -66,6 +66,15 @@ export default function App() {
   if (user?.role === "owner") {
     return (
       <OwnerDashboard
+        user={user}
+        onLogout={handleLogout}
+      />
+    );
+  }
+
+  if (user?.role === "mekanik") {
+    return (
+      <MekanikDashboard
         user={user}
         onLogout={handleLogout}
       />

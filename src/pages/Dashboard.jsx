@@ -5,6 +5,7 @@ import { NAVY, ORANGE } from "../constants/theme";
 
 
 import Sidebar from "../components/dashboard/Sidebar";
+import KelolaMekanik from "./KelolaMekanik";
 import Topbar from "../components/dashboard/Topbar";
 import StatCards from "../components/dashboard/StatCards";
 import ActiveCall from "../components/dashboard/ActiveCall";
@@ -605,6 +606,9 @@ export default function Dashboard({ go }) {
 
       case "Kelola Antrian":
         return renderKelolaAntrian();
+
+      case "Kelola Mekanik":
+        return <KelolaMekanik />;
 
       case "Pembayaran":
         return renderPembayaran();
