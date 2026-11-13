@@ -1,4 +1,4 @@
-
+import { aktifkanPushNotification } from "../services/push";
 import { useCallback, useEffect, useState } from "react";
 import {
   Bike,
@@ -13,6 +13,7 @@ import {
   ClipboardList,
   History,
   PlusCircle,
+  BellRing,
 } from "lucide-react";
 
 import { NAVY, ORANGE, CREAM } from "../constants/theme";
@@ -29,6 +30,23 @@ export default function CustomerHome({ user, onLogout }) {
   const [loading, setLoading] = useState(true);
   const [menyimpan, setMenyimpan] = useState(false);
   const [error, setError] = useState("");
+  const [mengaktifkanPush, setMengaktifkanPush] = useState(false);
+  const [pushAktif, setPushAktif] = useState(false);
+
+  const aktifkanNotifikasi = async () => {
+    if (mengaktifkanPush) return;
+    setMengaktifkanPush(true);
+    try {
+      await aktifkanPushNotification();
+      setPushAktif(true);
+      alert("Notifikasi HP berhasil diaktifkan.");
+    } catch (err) {
+      alert("Gagal mengaktifkan notifikasi: " + (err.message || "Terjadi kesalahan."));
+    } finally {
+      setMengaktifkanPush(false);
+    }
+  };
+
 
   const [form, setForm] = useState({
     merk: "",
@@ -345,9 +363,24 @@ export default function CustomerHome({ user, onLogout }) {
         </header>
 
         <div className="p-5 md:p-8 max-w-6xl mx-auto">
-          {/* TOMBOL REFRESH */}
-          <div className="flex justify-end mb-5">
+          {/* NOTIFIKASI DAN REFRESH */}
+          <div className="flex flex-wrap justify-end gap-3 mb-5">
             <button
+              type="button"
+              onClick={aktifkanNotifikasi}
+              disabled={mengaktifkanPush || pushAktif}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl text-white font-semibold text-sm disabled:opacity-60"
+              style={{ background: NAVY }}
+            >
+              <BellRing size={17} />
+              {mengaktifkanPush
+                ? "Mengaktifkan..."
+                : pushAktif
+                ? "Notifikasi Aktif"
+                : "Aktifkan Notifikasi"}
+            </button>
+            <button
+              type="button"
               onClick={muatAntrean}
               disabled={loading}
               className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white border font-semibold text-sm disabled:opacity-50"
