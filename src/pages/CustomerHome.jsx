@@ -1,5 +1,6 @@
 import { aktifkanPushNotification } from "../services/push";
 import { api } from "../services/api";
+import EstimasiAntrean from "../components/EstimasiAntrean";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Bike,
@@ -630,7 +631,7 @@ export default function CustomerHome({ user, onLogout }) {
               <div
                 className="relative isolate overflow-hidden rounded-3xl p-6 md:p-8 text-white mb-6 shadow-sm"
                 style={{ background: `linear-gradient(115deg, ${NAVY} 0%, #254d7b 100%)` }}
-              >
+              ><EstimasiAntrean />
                 <p className="text-sm opacity-80">
                   {sapaanHari()},
                 </p>
