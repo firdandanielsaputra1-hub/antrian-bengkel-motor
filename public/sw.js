@@ -1,135 +1,72 @@
 
-import { api } from "./api";
+/*
+ * SERVICE WORKER - BENGKEL MOTOR
+ * Menerima notifikasi antrean pelanggan
+ */
 
-// Mengubah VAPID Public Key ke Uint8Array
-function urlBase64ToUint8Array(base64String) {
-  const padding = "=".repeat(
-    (4 - (base64String.length % 4)) % 4
-  );
+self.addEventListener("push", (event) => {
+  let data = {
+    title: "Bengkel Motor",
+    body: "Ada informasi terbaru mengenai antrean Anda.",
+    url: "/",
+  };
 
-  const base64 = (base64String + padding)
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
+  if (event.data) {
+    try {
+      const pesan = event.data.json();
 
-  const rawData = window.atob(base64);
-
-  return Uint8Array.from(
-    rawData,
-    (char) => char.charCodeAt(0)
-  );
-}
-
-// Fungsi untuk mengaktifkan notifikasi pelanggan
-export async function aktifkanPushNotification() {
-  // Periksa dukungan browser
-  if (
-    !("serviceWorker" in navigator) ||
-    !("PushManager" in window) ||
-    !("Notification" in window)
-  ) {
-    throw new Error(
-      "Browser tidak mendukung Push Notification."
-    );
-  }
-
-  // Push hanya boleh melalui HTTPS
-  if (!window.isSecureContext) {
-    throw new Error(
-      "Notifikasi memerlukan koneksi HTTPS."
-    );
-  }
-
-  // Periksa izin notifikasi
-  if (Notification.permission === "denied") {
-    throw new Error(
-      "Notifikasi diblokir. Aktifkan melalui pengaturan browser."
-    );
-  }
-
-  // Meminta izin dari pengguna
-  if (Notification.permission !== "granted") {
-    const izin = await Notification.requestPermission();
-
-    if (izin !== "granted") {
-      throw new Error(
-        "Izin notifikasi belum diberikan."
-      );
-    }
-  }
-
-  // Mengambil Public Key dari backend PHP
-  const hasil = await api("push/public-key.php");
-
-  if (hasil?.ok === false) {
-    throw new Error(
-      hasil.message || "Gagal mengambil public key."
-    );
-  }
-
-  const publicKey =
-    hasil?.publicKey ??
-    hasil?.public_key ??
-    hasil?.data?.publicKey;
-
-  if (!publicKey) {
-    throw new Error(
-      "VAPID Public Key tidak ditemukan."
-    );
-  }
-
-  // Daftarkan Service Worker
-  const registration =
-    await navigator.serviceWorker.register("/sw.js", {
-      scope: "/",
-    });
-
-  await navigator.serviceWorker.ready;
-
-  // Periksa subscription yang sudah ada
-  let subscription =
-    await registration.pushManager.getSubscription();
-
-  const keyBaru = urlBase64ToUint8Array(publicKey);
-
-  if (subscription) {
-    const keyLama =
-      subscription.options?.applicationServerKey;
-
-    if (keyLama) {
-      const lama = new Uint8Array(keyLama);
-
-      const cocok =
-        lama.length === keyBaru.length &&
-        lama.every((v, i) => v === keyBaru[i]);
-
-      if (!cocok) {
-        await subscription.unsubscribe();
-        subscription = null;
+      if (pesan && typeof pesan === "object") {
+        data = { ...data, ...pesan };
       }
+    } catch {
+      data.body = event.data.text();
     }
   }
 
-  // Daftarkan perangkat jika belum ada
-  if (!subscription) {
-    subscription =
-      await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: keyBaru,
+  const options = {
+    body: data.body || "Ada pembaruan antrean Anda.",
+    icon: "/favicon.ico",
+    data: {
+      url: data.url || "/",
+    },
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(
+      data.title || "Bengkel Motor",
+      options
+    )
+  );
+});
+
+self.addEventListener("notificationclick", (event) => {
+  event.notification.close();
+
+  const url = new URL(
+    event.notification.data?.url || "/",
+    self.location.origin
+  );
+
+  const tujuan =
+    url.origin === self.location.origin
+      ? url.href
+      : self.location.origin + "/";
+
+  event.waitUntil(
+    (async () => {
+      const daftarTab = await clients.matchAll({
+        type: "window",
+        includeUncontrolled: true,
       });
-  }
 
-  // Simpan subscription ke MySQL melalui PHP
-  const simpan = await api("push/subscribe.php", {
-    method: "POST",
-    body: JSON.stringify(subscription.toJSON()),
-  });
+      for (const tab of daftarTab) {
+        if (new URL(tab.url).origin === self.location.origin) {
+          await tab.focus();
+          return;
+        }
+      }
 
-  if (simpan?.ok === false) {
-    throw new Error(
-      simpan.message ||
-      "Gagal menyimpan notifikasi."
-    );
-  }
-
-  return true;
-}
+      return clients.openWindow(tujuan);
+    })()
+  );
+});
