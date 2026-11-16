@@ -31,6 +31,8 @@ export default function CustomerHome({ user, onLogout }) {
   const [motorTersimpan, setMotorTersimpan] = useState([]);
   const [memuatMotor, setMemuatMotor] = useState(true);
   const [errorMotor, setErrorMotor] = useState("");
+  // Nilai keluhan dapat diubah langsung untuk masing-masing motor.
+  const [keluhanMotor, setKeluhanMotor] = useState({});
   const [loading, setLoading] = useState(true);
   const [menyimpan, setMenyimpan] = useState(false);
   const [error, setError] = useState("");
@@ -185,13 +187,31 @@ export default function CustomerHome({ user, onLogout }) {
     }
   };
 
-  // Sekali klik untuk pelanggan lama: tidak perlu isi formulir lagi.
+  // Gunakan motor tersimpan; keluhan bisa diedit sebelum antrean dibuat.
   const pesanUlangMotor = async (item) => {
     if (menyimpan) return;
+    const servis = String(keluhanMotor[item.id] ?? item.servis ?? "").trim();
+    if (!servis) {
+      alert("Isi keluhan/jenis servis sebelum mengambil antrean.");
+      return;
+    }
+    if (servis.length > 120) {
+      alert("Keluhan maksimal 120 karakter.");
+      return;
+    }
+
     setMenyimpan(true);
     try {
-      const hasil = await buatAntrean({ motor_id: Number(item.id) });
+      const hasil = await buatAntrean({
+        motor_id: Number(item.id),
+        servis,
+      });
       alert(`Berhasil mengambil antrean ${hasil.data.nomor} untuk ${item.nama}.`);
+      setKeluhanMotor((lama) => {
+        const berikutnya = { ...lama };
+        delete berikutnya[item.id];
+        return berikutnya;
+      });
       setMenu("Status Antrean");
       await muatAntrean();
       await muatMotor();
@@ -226,6 +246,43 @@ export default function CustomerHome({ user, onLogout }) {
     plat: item.plat,
     servis: item.servis_terakhir,
   }));
+
+  // Keluhan langsung terlihat pada setiap kartu, tanpa pop-up.
+  const kartuPesanUlang = (item) => (
+    <div key={item.id} className="rounded-xl border border-neutral-200 bg-white p-4 space-y-3">
+      <div className="flex items-start gap-3">
+        <Bike size={25} style={{ color: ORANGE }} />
+        <div className="min-w-0">
+          <p className="font-bold" style={{ color: NAVY }}>{item.nama}</p>
+          <p className="text-sm text-neutral-500">{item.plat}</p>
+        </div>
+      </div>
+      <div>
+        <label htmlFor={`keluhan-motor-${item.id}-${menu}`} className="block text-sm font-semibold mb-2">
+          Keluhan / Jenis Servis (boleh diganti)
+        </label>
+        <textarea
+          id={`keluhan-motor-${item.id}-${menu}`}
+          rows={3}
+          maxLength={120}
+          placeholder="Contoh: Ganti oli dan cek rem"
+          className="w-full rounded-lg border px-3 py-2 text-sm"
+          value={keluhanMotor[item.id] ?? item.servis ?? ""}
+          onChange={(e) => setKeluhanMotor((lama) => ({ ...lama, [item.id]: e.target.value }))}
+        />
+        <p className="text-xs text-neutral-500 mt-1">Keluhan dapat diubah sebelum menekan Pesan Lagi.</p>
+      </div>
+      <button
+        type="button"
+        onClick={() => pesanUlangMotor(item)}
+        disabled={menyimpan || !(keluhanMotor[item.id] ?? item.servis ?? "").trim()}
+        className="w-full rounded-lg px-4 py-2 text-white text-sm font-bold disabled:opacity-50"
+        style={{ background: ORANGE }}
+      >
+        {menyimpan ? "Memproses..." : "Pesan Lagi"}
+      </button>
+    </div>
+  );
 
   const kartu = (judul, nilai, Icon) => (
     <div className="bg-white rounded-2xl p-5 border border-neutral-200">
@@ -523,28 +580,16 @@ export default function CustomerHome({ user, onLogout }) {
                     Motor yang pernah didaftarkan
                   </h3>
                   <p className="mb-3 text-sm text-neutral-600">
-                    Tekan Pesan Lagi untuk menggunakan motor dan keluhan terakhir, tanpa mengisi formulir.
+                    Keluhan setiap motor dapat langsung diubah. Setelah itu klik Pesan Lagi untuk mengambil antrean.
                   </p>
-                  <div className="space-y-2">
-                    {motor.map((item) => (
-                      <div key={item.id} className="rounded-lg border bg-white p-3 flex flex-wrap items-center justify-between gap-3">
-                        <div>
-                          <p className="font-semibold">{item.nama} — {item.plat}</p>
-                          <p className="text-xs text-neutral-500">Servis terakhir: {item.servis || "Belum tersimpan"}</p>
-                        </div>
-                        <button type="button" onClick={() => pesanUlangMotor(item)}
-                          disabled={menyimpan || !item.servis}
-                          className="rounded-lg px-4 py-2 text-white text-sm font-bold disabled:opacity-50"
-                          style={{ background: NAVY }}>
-                          {menyimpan ? "Memproses..." : "Pesan Lagi"}
-                        </button>
-                      </div>
-                    ))}
+                  <div className="grid sm:grid-cols-2 gap-3">
+                    {motor.map(kartuPesanUlang)}
                   </div>
                 </div>
               )}
+
               <p className="mb-4 text-sm font-semibold" style={{ color: NAVY }}>
-                Atau gunakan formulir berikut untuk motor lain maupun jenis servis yang berbeda.
+                Atau gunakan formulir berikut untuk mendaftarkan kendaraan lain.
               </p>
               <form onSubmit={ambilAntrean} className="space-y-4">
                 <div>
@@ -633,7 +678,7 @@ export default function CustomerHome({ user, onLogout }) {
               </h2>
 
               <p className="text-sm text-neutral-500 mb-5">
-                Motor yang sudah kamu daftarkan. Pilih Pesan Lagi untuk antrean berikutnya.
+                Motor yang sudah kamu daftarkan. Ubah keluhan langsung di bawah motor, lalu klik Pesan Lagi.
               </p>
 
               {memuatMotor && <p className="text-sm text-neutral-500">Memuat motor...</p>}
@@ -644,29 +689,7 @@ export default function CustomerHome({ user, onLogout }) {
                 </p>
               ) : (
                 <div className="grid sm:grid-cols-2 gap-4">
-                  {motor.map((item) => (
-                    <div
-                      key={item.plat}
-                      className="border rounded-xl p-4 flex items-center gap-4"
-                    >
-                      <Bike
-                        size={28}
-                        style={{ color: ORANGE }}
-                      />
-
-                      <div className="min-w-0 flex-1">
-                        <p className="font-bold">{item.nama}</p>
-                        <p className="text-sm text-neutral-500">{item.plat}</p>
-                        <p className="text-xs text-neutral-500 mt-1">{item.servis || "Belum ada servis tersimpan"}</p>
-                      </div>
-                      <button type="button" onClick={() => pesanUlangMotor(item)}
-                        disabled={menyimpan || !item.servis}
-                        className="rounded-lg px-3 py-2 text-white text-sm font-bold disabled:opacity-50"
-                        style={{ background: ORANGE }}>
-                        {menyimpan ? "Memproses..." : "Pesan Lagi"}
-                      </button>
-                    </div>
-                  ))}
+                  {motor.map(kartuPesanUlang)}
                 </div>
               )}
             </div>
