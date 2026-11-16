@@ -1,10 +1,9 @@
-
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "rewrites": [
     {
       "source": "/api/:path*",
-      "destination": "https://ALAMAT-BACKEND-KAMU/api/:path*"
+      "destination": "https://bengkelmotor.tail0acfd6.ts.net/bengkel-api/:path*"
     },
     {
       "source": "/(.*)",
